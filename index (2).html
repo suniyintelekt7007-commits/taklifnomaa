@@ -1,0 +1,1180 @@
+<title>For You</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Italiana&family=JetBrains+Mono:wght@400;600;800&family=Pinyon+Script&display=swap">
+<style>
+  /* Layout: one full-bleed night stage; the particles carry the moment, words and controls float at its edges */
+  :root {
+    --night: #0b0710;
+    --night-2: #1d1026;
+    --ink: #f7ebe6;
+    --muted: #a8939f;
+    --ember: #ffb36b;
+    --rose: #ff3d63;
+    --line: rgba(247, 235, 230, 0.16);
+    --chip-bg: rgba(20, 11, 26, 0.55);
+    --ember-line: rgba(255, 179, 107, 0.55);
+    --ember-wash: rgba(255, 179, 107, 0.08);
+    --ember-glow: rgba(255, 168, 92, 0.26);
+    --gold-glow: rgba(255, 214, 150, 0.2);
+    --rose-glow: rgba(255, 46, 92, 0.22);
+    --font-display: "Italiana", "Didot", "Bodoni 72", Georgia, serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: dark;
+    background: var(--night);
+  }
+
+  html, body { height: 100%; }
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: radial-gradient(120% 85% at 50% 36%, var(--night-2) 0%, var(--night) 64%);
+    background-color: var(--night);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #sky { z-index: 0; }
+  #stage { z-index: 2; touch-action: none; }
+  #fx { z-index: 2; pointer-events: none; }
+  body[data-phase="intro"] #stage { cursor: pointer; }
+  body[data-phase="rose"] #stage { cursor: grab; }
+  body[data-phase="rose"] #stage:active { cursor: grabbing; }
+
+  .glow {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.6s ease;
+  }
+  .glow-ember { background: radial-gradient(circle at var(--ex, 50%) var(--ey, 44%), var(--ember-glow) 0%, transparent 42vmin); }
+  .glow-name { background: radial-gradient(ellipse 70vmax 34vmin at 50% var(--ny, 44%), var(--gold-glow) 0%, transparent 100%); }
+  .glow-rose { background: radial-gradient(circle at var(--rx, 50%) var(--ry, 30%), var(--rose-glow) 0%, transparent 48vmin); }
+  body[data-phase="intro"] .glow-ember { opacity: 0.45; }
+  body[data-phase="opening"] .glow-ember { opacity: 1; transition-duration: 0.5s; }
+  body[data-phase="vortex"] .glow-ember { opacity: 0.3; }
+  body[data-phase="vortex"] .glow-name { opacity: 0.5; }
+  body[data-phase="name"] .glow-name { opacity: 1; }
+  body[data-phase="rose"] .glow-rose { opacity: 1; }
+
+  .controls {
+    position: fixed;
+    z-index: 4;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    gap: 8px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 600 11px/1 var(--font-mono);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--chip-bg);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 9px 13px;
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .chip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .chip.plain::before { display: none; }
+  .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ember-line); }
+  .chip[aria-pressed="true"]::before { background: var(--ember); box-shadow: 0 0 8px var(--ember); }
+  .chip:hover { color: var(--ink); }
+
+  .intro {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 74%;
+    z-index: 3;
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    text-align: center;
+    pointer-events: none;
+  }
+  .label {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .label .who { color: var(--ember); }
+  .cta {
+    pointer-events: auto;
+    font: 600 12px/1 var(--font-mono);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ember);
+    background: var(--ember-wash);
+    border: 1px solid var(--ember-line);
+    border-radius: 999px;
+    padding: 15px 26px;
+    cursor: pointer;
+    animation: beckon 2.6s ease-out infinite;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  .cta:hover { background: var(--ember); color: var(--night); }
+  .cta:disabled { cursor: progress; animation: none; color: var(--muted); border-color: var(--line); }
+
+  .chip:focus-visible,
+  .cta:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+
+  .message {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .message .for {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--for-y, 66%);
+    margin: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: clamp(20px, 2.6vw, 30px);
+    line-height: 1;
+    letter-spacing: 0.16em;
+    color: var(--ink);
+    text-shadow: 0 0 18px var(--rose-glow);
+    animation: bloom-in 2.2s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  }
+  .message .actions {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(16px, 3.5vh, 36px));
+    display: flex;
+    justify-content: center;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .message .chip {
+    pointer-events: auto;
+    animation: rise 1.2s 1.4s ease both;
+  }
+
+  @keyframes beckon {
+    0% { box-shadow: 0 0 0 0 var(--ember-line); }
+    70% { box-shadow: 0 0 0 14px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  @keyframes bloom-in {
+    from { opacity: 0; letter-spacing: 0.6em; filter: blur(10px); }
+    to { opacity: 1; filter: blur(0); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cta, .message .for, .message .chip { animation: none; }
+    .glow { transition: none; }
+  }
+</style>
+
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="glow glow-ember" aria-hidden="true"></div>
+<div class="glow glow-name" aria-hidden="true"></div>
+<div class="glow glow-rose" aria-hidden="true"></div>
+<canvas id="stage" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<div class="controls">
+  <button id="ascii" class="chip" type="button" aria-pressed="false" title="Terminaldagidek belgilar bilan ko‘rsatish">ASCII</button>
+  <button id="sound" class="chip" type="button" aria-pressed="true">Ovoz</button>
+</div>
+
+<section id="intro" class="intro">
+  <p class="label"><span class="who">Gulirano</span>, senga xat keldi</p>
+  <button id="open" class="cta" type="button">Konvertni ochish</button>
+</section>
+
+<section id="message" class="message" aria-live="polite" hidden>
+  <p class="for">Sen uchun<span class="sr-only">, <span class="who">Gulirano</span></span></p>
+  <div class="actions">
+    <button id="replay" class="chip plain" type="button">Qaytadan</button>
+  </div>
+</section>
+
+<script>
+(() => {
+  'use strict';
+
+  const TAU = Math.PI * 2;
+  const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const SCRIPT = '"Pinyon Script", "Snell Roundhand", "Apple Chancery", cursive';
+  const DEFAULT_NAME = 'Gulirano';
+  const stage = document.getElementById('stage');
+  const sky = document.getElementById('sky');
+  const ctx = stage.getContext('2d');
+  const sctx = sky.getContext('2d');
+  const fx = document.getElementById('fx');
+  const fctx = fx.getContext('2d');
+  const body = document.body;
+  const introEl = document.getElementById('intro');
+  const messageEl = document.getElementById('message');
+  const openBtn = document.getElementById('open');
+  const replayBtn = document.getElementById('replay');
+  const asciiBtn = document.getElementById('ascii');
+  const soundBtn = document.getElementById('sound');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Particle palette: envelope warms, rose reds from deep to petal tip, leaf greens, sky tones
+  const PALETTE = ['#ffb36b', '#ffe2a8', '#b8662e', '#ff3d63', '#8c0f2e', '#c4163f', '#ee2a55', '#ff5577', '#ffa0b4', '#2f8f57', '#5fd38a', '#cfd8ff', '#8a6d9e'];
+  const AMBER = 0, GOLD = 1, AMBER_DIM = 2, HEART = 3, ROSE = 4, LEAF_DARK = 9, LEAF = 10, STAR = 11, DUST = 12;
+  const STAR_COLOR = '#dfe5ff';
+  const PETAL_COLOR = '#ff7d98';
+
+  const prefs = {
+    read(key, fallback) {
+      try {
+        const v = localStorage.getItem(key);
+        return v === null ? fallback : v === '1';
+      } catch (e) {
+        return fallback;
+      }
+    },
+    write(key, value) {
+      try {
+        localStorage.setItem(key, value ? '1' : '0');
+      } catch (e) {
+        // storage unavailable: the toggle still works for this visit
+      }
+    },
+  };
+  let asciiMode = prefs.read('foryou-ascii', false);
+  let soundOn = prefs.read('foryou-sound', true);
+
+  const sprites = PALETTE.map(makeSprite);
+
+  let W = 0, H = 0, dpr = 1;
+  const geo = {
+    ew: 0, eh: 0, ecx: 0, ecy: 0, sp: 4, // envelope
+    S: 0, rcx: 0, rby: 0,                // rose
+    bw: 0, bcy: 0, nw: 0, ncy: 0, forY: 0, // big name, small name under the rose
+    fs: 11, cellW: 7, cellH: 12,         // ASCII grid
+  };
+  let particles = [], stars = [], petals = [];
+  let nBig = 0, nameAspect = 0.42, currentName = DEFAULT_NAME;
+  let nameMetrics = null, namePts = [], sparkles = [];
+  let bigA = 0, smallA = 0, namePulse = 1; // opacity of the crisp big / small name, heartbeat scale
+  let grid = new Uint32Array(1), gridCols = 1, gridRows = 1, stamp = 0;
+  let phase = 'loading', phaseStart = 0, vortexStart = 0, now = 0;
+  let flap = 0, rot = 0.6, rotV = 0, petalsOn = 0;
+  let dragging = false, lastPX = 0, messageShown = false, fontReady = false;
+  const pointer = { x: -9999, y: -9999, seen: -1e9 };
+  let audio = null;
+
+  function makeSprite(hex) {
+    const size = 48, c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    const r = parseInt(hex.slice(1, 3), 16), gr = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    const hot = (v) => Math.round(v + (255 - v) * 0.65);
+    const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, `rgba(${hot(r)},${hot(gr)},${hot(b)},1)`);
+    grad.addColorStop(0.12, `rgba(${r},${gr},${b},1)`);
+    grad.addColorStop(0.32, `rgba(${r},${gr},${b},0.32)`);
+    grad.addColorStop(1, `rgba(${r},${gr},${b},0)`);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    return c;
+  }
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function easeInOut(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function heartPath(g, cx, cy, s) {
+    g.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const t = (i / 60) * TAU;
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      const px = cx + (x / 32) * s, py = cy - (y / 32) * s;
+      if (i) g.lineTo(px, py);
+      else g.moveTo(px, py);
+    }
+    g.closePath();
+  }
+
+  // Envelope points, relative to the envelope centre. Flap points carry flap: true so they can swing open.
+  function buildEnvelope(ew, eh, sp, budget) {
+    if (ew < 20 || eh < 20) return []; // window not laid out yet; resize() rebuilds it
+    const hw = ew / 2, hh = eh / 2;
+    const off = document.createElement('canvas');
+    off.width = Math.ceil(ew);
+    off.height = Math.ceil(eh);
+    const g = off.getContext('2d', { willReadFrequently: true });
+    const font = `800 ${Math.round(eh * 0.2)}px ${MONO}`;
+    const textY = eh * 0.77;
+    const heart = { x: hw, y: eh * 0.55, s: eh * 0.17 };
+    const jit = () => (Math.random() - 0.5) * sp * 0.3;
+    const at = (x, y, c, glyph, extra) => Object.assign({ x: x - hw + jit(), y: y - hh + jit(), c, g: glyph, flap: false, a: 1 }, extra);
+
+    const drawText = (pad) => {
+      g.font = font;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      if (pad) {
+        g.lineWidth = pad;
+        g.lineJoin = 'round';
+        g.strokeText('FOR YOU', hw, textY);
+      }
+      g.fillText('FOR YOU', hw, textY);
+    };
+    const drawHeart = (grow) => {
+      heartPath(g, heart.x, heart.y, heart.s + grow);
+      g.fill();
+    };
+    const sample = (step, c, glyph, extra) => {
+      const data = g.getImageData(0, 0, off.width, off.height).data;
+      const out = [];
+      for (let y = step / 2; y < off.height; y += step) {
+        for (let x = step / 2; x < off.width; x += step) {
+          if (data[((y | 0) * off.width + (x | 0)) * 4 + 3] > 128) out.push(at(x, y, c, glyph, extra));
+        }
+      }
+      return out;
+    };
+
+    // Mask keeps lines and stripes from running through the lettering and the seal
+    g.fillStyle = g.strokeStyle = '#fff';
+    drawText(sp * 2.6);
+    drawHeart(sp * 3);
+    const mask = g.getImageData(0, 0, off.width, off.height).data;
+    const masked = (x, y) => {
+      const xi = x | 0, yi = y | 0;
+      if (xi < 0 || yi < 0 || xi >= off.width || yi >= off.height) return false;
+      return mask[(yi * off.width + xi) * 4 + 3] > 16;
+    };
+
+    g.clearRect(0, 0, off.width, off.height);
+    drawText(0);
+    const text = sample(sp * 0.82, GOLD, '#');
+    g.clearRect(0, 0, off.width, off.height);
+    drawHeart(0);
+    const seal = sample(sp * 0.78, HEART, '@', { flap: true });
+
+    const lines = [];
+    const line = (x1, y1, x2, y2, c, glyph, extra) => {
+      const n = Math.max(2, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / sp));
+      for (let i = 0; i <= n; i++) {
+        const t = i / n, x = x1 + (x2 - x1) * t, y = y1 + (y2 - y1) * t;
+        if (!masked(x, y)) lines.push(at(x, y, c, glyph, extra));
+      }
+    };
+    line(0, 0, ew, 0, AMBER, '#');
+    line(0, eh, ew, eh, AMBER, '#');
+    line(0, 0, 0, eh, AMBER, '#');
+    line(ew, 0, ew, eh, AMBER, '#');
+    line(0, 0, hw, eh * 0.55, GOLD, '\\', { flap: true });
+    line(ew, 0, hw, eh * 0.55, GOLD, '/', { flap: true });
+    line(0, eh, ew * 0.36, eh * 0.5, AMBER, '/');
+    line(ew, eh, ew * 0.64, eh * 0.5, AMBER, '\\');
+
+    const stripes = [];
+    for (let y = sp * 3; y < eh - sp * 2; y += sp * 2.6) {
+      for (let x = sp * 2; x < ew - sp * 1.5; x += sp * 1.3) {
+        if (!masked(x, y)) stripes.push(at(x, y, AMBER_DIM, '-', { a: 0.55 }));
+      }
+    }
+
+    const fixed = text.concat(seal);
+    let rest = budget - fixed.length;
+    const keepLines = rest >= lines.length ? lines : shuffle(lines).slice(0, Math.max(0, rest));
+    rest -= keepLines.length;
+    return fixed.concat(keepLines, shuffle(stripes).slice(0, Math.max(0, rest)));
+  }
+
+  // Her name in the script face, as points normalised by the text width (u across, v down, both centred)
+  function sampleName(name, n) {
+    const fontPx = 160, pad = 12;
+    const off = document.createElement('canvas');
+    const g = off.getContext('2d', { willReadFrequently: true });
+    g.font = `${fontPx}px ${SCRIPT}`;
+    const m = g.measureText(name);
+    const left = m.actualBoundingBoxLeft || 0;
+    const right = m.actualBoundingBoxRight || m.width;
+    const asc = m.actualBoundingBoxAscent || fontPx * 0.8;
+    const desc = m.actualBoundingBoxDescent || fontPx * 0.3;
+    const tw = Math.max(1, left + right), th = Math.max(1, asc + desc);
+    off.width = Math.ceil(tw + pad * 2);
+    off.height = Math.ceil(th + pad * 2);
+    g.font = `${fontPx}px ${SCRIPT}`;
+    g.fillStyle = g.strokeStyle = '#fff';
+    g.lineWidth = 2.5;
+    g.lineJoin = 'round';
+    g.fillText(name, pad + left, pad + asc);
+    g.strokeText(name, pad + left, pad + asc);
+    const data = g.getImageData(0, 0, off.width, off.height).data;
+
+    let hits = [];
+    for (const step of [2.5, 1.8, 1.3]) {
+      hits = [];
+      for (let y = 0; y < off.height; y += step) {
+        for (let x = 0; x < off.width; x += step) {
+          if (data[((y | 0) * off.width + (x | 0)) * 4 + 3] > 128) hits.push([x, y]);
+        }
+      }
+      if (hits.length >= n) break;
+    }
+    shuffle(hits);
+    const cx = pad + tw / 2, cy = pad + th / 2;
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const [x, y] = hits.length ? hits[i % hits.length] : [cx, cy];
+      const spread = i >= hits.length ? 1.6 : 0; // reused points get a little jitter
+      const u = (x - cx + (Math.random() - 0.5) * spread) / tw;
+      const v = (y - cy + (Math.random() - 0.5) * spread) / tw;
+      const t = Math.abs(u) * 2; // rose gold: gold in the middle, pink towards the ends
+      pts.push({ u, v, c: t < 0.35 ? GOLD : t < 0.7 ? ROSE + 4 : ROSE + 3, g: '#' });
+    }
+    return { pts, aspect: th / tw, metrics: { fontPx, tw, left, right, asc, desc } };
+  }
+
+  function stemX(s) { return 0.07 * Math.sin(s * 2.6); }
+  function stemZ(s) { return -0.12 - s * 1.6; }
+
+  // Rose points in 3D (Z up, base of the bloom at the origin), projected every frame so the rose can turn
+  function buildRose(n) {
+    const pts = [];
+    const nHead = Math.round(n * 0.74), nStem = Math.round(n * 0.08), nSepal = Math.round(n * 0.04);
+    const nLeaf = n - nHead - nStem - nSepal;
+    const HEAD_GLYPHS = '@%&#*';
+    for (let i = 0; i < nHead; i++) {
+      // Parametric rose surface: x runs from a petal's base to its tip, t winds through the petals
+      const x = Math.pow(Math.random(), 0.55);
+      const t = -2 * Math.PI + 17 * Math.PI * Math.pow(Math.random(), 1.2);
+      const p = (Math.PI / 2) * Math.exp(-t / (8 * Math.PI));
+      const m = (((3.6 * t) % TAU) + TAU) % TAU;
+      const u = 1 - Math.pow(1 - m / Math.PI, 4) / 2;
+      const y = 2 * Math.pow(x * x - x, 2) * Math.sin(p);
+      const r = u * (x * Math.sin(p) + y * Math.cos(p));
+      pts.push({
+        X: r * Math.cos(t),
+        Y: r * Math.sin(t),
+        Z: u * (x * Math.cos(p) - y * Math.sin(p)),
+        kind: 0, s: x, g: HEAD_GLYPHS[(Math.random() * HEAD_GLYPHS.length) | 0],
+      });
+    }
+    for (let i = 0; i < nStem; i++) {
+      const s = Math.random(), a = Math.random() * TAU;
+      pts.push({ X: stemX(s) + Math.cos(a) * 0.028, Y: Math.sin(a) * 0.028, Z: stemZ(s), kind: 1, s, g: '|' });
+    }
+    for (let i = 0; i < nSepal; i++) {
+      const a = (i % 5) * (TAU / 5) + 0.3, s = Math.random();
+      pts.push({ X: Math.cos(a) * 0.42 * s, Y: Math.sin(a) * 0.42 * s, Z: -0.08 - 0.24 * s + 0.1 * s * s, kind: 2, s, g: '^' });
+    }
+    const LEAVES = [
+      { at: 0.42, dir: [0.82, 0.18, 0.42], side: [-0.2, 0.98, 0], len: 0.78, wid: 0.24 },
+      { at: 0.66, dir: [-0.8, -0.25, 0.38], side: [0.3, -0.95, 0], len: 0.7, wid: 0.22 },
+    ];
+    for (let i = 0; i < nLeaf; i++) {
+      const lf = LEAVES[i % 2];
+      const a = Math.random(), b = Math.random() * 2 - 1;
+      const along = a * lf.len, across = lf.wid * Math.sin(Math.PI * Math.pow(a, 0.8)) * b;
+      pts.push({
+        X: stemX(lf.at) + lf.dir[0] * along + lf.side[0] * across,
+        Y: lf.dir[1] * along + lf.side[1] * across,
+        Z: stemZ(lf.at) + lf.dir[2] * along + lf.side[2] * across - 0.18 * a * a,
+        kind: 3, s: Math.abs(b), g: Math.abs(b) < 0.22 ? '~' : '*',
+      });
+    }
+    return pts;
+  }
+
+  function makeParticle() {
+    const fx = Math.random(), fy = Math.random(), q = Math.random();
+    return {
+      x: fx * W, y: fy * H,
+      vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8,
+      fx, fy, // home position (as a fraction of the screen) while the particle is just dust
+      ph: Math.random() * TAU, q, kv: Math.random(),
+      size: 8 + Math.random() * 6, sz: 1, da: 1, delay: 0,
+      e: null, n: null, r: null, small: false, // envelope, name and rose targets
+      c: q < 0.3 ? STAR : DUST, g: '.', a: 0.35,
+    };
+  }
+
+  function makePetal(anywhere) {
+    return {
+      x: Math.random() * W, y: anywhere ? Math.random() * H : -20,
+      vy: 0.25 + Math.random() * 0.5, ph: Math.random() * TAU,
+      rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 0.03, s: 5 + Math.random() * 6,
+    };
+  }
+
+  function dress(p) {
+    if ((phase === 'intro' || phase === 'opening') && p.e) {
+      p.c = p.e.c; p.g = p.e.g; p.a = p.e.a;
+    } else if ((phase === 'vortex' && (p.n || p.r)) || (phase === 'name' && p.n)) {
+      p.c = Math.random() < 0.16 ? GOLD : ROSE + 2;
+      p.g = p.n ? p.n.g : p.r.g; p.a = 0.95;
+    } else if (phase === 'rose' && p.small && p.n) {
+      p.g = p.n.g; p.a = 1;
+    } else if (phase === 'rose' && p.r) {
+      p.g = p.r.g; p.a = 1;
+    } else {
+      const bright = p.q < 0.3;
+      p.c = bright ? STAR : DUST; p.g = bright ? '+' : '.'; p.a = bright ? 0.5 : 0.35;
+    }
+  }
+
+  function setPhase(next) {
+    const prev = phase;
+    phase = next;
+    phaseStart = now;
+    body.dataset.phase = next;
+    if (next === 'vortex' || (next === 'name' && prev !== 'vortex')) vortexStart = now;
+    for (const p of particles) {
+      if (next === 'intro') p.delay = Math.random() * 1.2;
+      // the name is written left to right: each particle leaves the swirl when the "pen" reaches it
+      else if (next === 'name') p.delay = p.n && !reduceMotion ? (p.n.u + 0.5) * 1.5 + Math.random() * 0.15 : 0;
+      else if (next === 'rose') p.delay = p.small || !p.r ? 0 : p.r.kind === 0 ? Math.random() * 0.7 : 0.4 + Math.random() * 0.9;
+      else p.delay = 0;
+      dress(p);
+    }
+    if (next === 'vortex') {
+      for (const p of particles) {
+        const dx = p.x - geo.ecx, dy = p.y - geo.ecy, len = Math.hypot(dx, dy) || 1, kick = 2 + Math.random() * 5;
+        p.vx += (dx / len) * kick;
+        p.vy += (dy / len) * kick;
+      }
+    }
+    if (next === 'name') nameSound();
+    if (next === 'rose') {
+      messageShown = false;
+      bloomSound();
+    }
+  }
+
+  function buildEnvelopeTargets() {
+    const pts = shuffle(buildEnvelope(geo.ew, geo.eh, geo.sp, Math.round(particles.length * 0.7)));
+    particles.forEach((p, i) => {
+      p.e = pts[i] || null;
+      if (phase === 'intro' || phase === 'opening') dress(p);
+    });
+  }
+
+  function buildNameTargets() {
+    const { pts, aspect, metrics } = sampleName(currentName, nBig);
+    nameAspect = aspect;
+    nameMetrics = metrics;
+    namePts = pts;
+    particles.forEach((p, i) => { p.n = pts[i] || null; });
+    sparkles = Array.from({ length: 18 }, makeSparkle);
+    layoutName();
+  }
+
+  function layoutName() {
+    geo.bw = Math.min(W * 0.88, 960, (H * 0.42) / nameAspect);
+    geo.bcy = H * 0.44;
+    geo.forY = geo.rby + 1.6 * geo.S + 12;
+    const nameTop = geo.forY + 34;
+    const room = H - nameTop - 76; // keep clear of the replay button
+    geo.nw = Math.max(80, Math.min(W * 0.62, 440, room / nameAspect));
+    geo.ncy = nameTop + (geo.nw * nameAspect) / 2;
+    body.style.setProperty('--ny', `${geo.bcy}px`);
+    body.style.setProperty('--for-y', `${Math.round(geo.forY)}px`);
+  }
+
+  function readName() {
+    try {
+      const raw = decodeURIComponent(location.hash.slice(1)).replace(/[-_~.]+/g, ' ').trim();
+      if (raw && raw.length <= 24) return raw.charAt(0).toUpperCase() + raw.slice(1);
+    } catch (e) {
+      // malformed hash: keep the default name
+    }
+    return DEFAULT_NAME;
+  }
+
+  // Her name: "Gulirano" by default, or whatever follows # in the link (…#Malika)
+  function applyName() {
+    currentName = readName();
+    for (const el of document.querySelectorAll('.who')) el.textContent = currentName;
+    if (fontReady) buildNameTargets();
+  }
+
+  function measure() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+  }
+
+  function resize() {
+    measure();
+    for (const c of [stage, sky, fx]) {
+      c.width = Math.round(W * dpr);
+      c.height = Math.round(H * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    geo.ew = Math.min(W * 0.86, 620, H * 0.92);
+    geo.eh = geo.ew * 0.62;
+    geo.ecx = W / 2;
+    geo.ecy = H * 0.44;
+    geo.sp = Math.max(3.2, geo.ew / 165);
+    geo.S = Math.min(W * 0.32, H * 0.19);
+    geo.rcx = W / 2;
+    geo.rby = H * 0.3;
+    layoutName();
+
+    geo.fs = Math.max(9, Math.min(13, geo.ew / 58));
+    geo.cellW = geo.fs * 0.62;
+    geo.cellH = geo.fs * 1.15;
+    gridCols = Math.ceil(W / geo.cellW) + 2;
+    gridRows = Math.ceil(H / geo.cellH) + 2;
+    grid = new Uint32Array(gridCols * gridRows);
+    stamp = 0;
+
+    body.style.setProperty('--ex', `${geo.ecx}px`);
+    body.style.setProperty('--ey', `${geo.ecy}px`);
+    body.style.setProperty('--rx', `${geo.rcx}px`);
+    body.style.setProperty('--ry', `${geo.rby - geo.S * 0.35}px`);
+    introEl.style.top = `${Math.round(geo.ecy + geo.eh / 2 + Math.max(28, H * 0.05))}px`;
+
+    if (fontReady) buildEnvelopeTargets();
+  }
+
+  function step(dt) {
+    let pt = now - phaseStart;
+    if (phase === 'opening') {
+      flap = easeInOut(Math.min(pt / 0.75, 1)) * Math.PI * 0.94;
+      if (pt > 0.95) setPhase(reduceMotion ? 'name' : 'vortex');
+    } else if (phase === 'vortex') {
+      if (pt > 1.3) setPhase('name');
+    } else if (phase === 'name') {
+      if (pt > 5.2) setPhase('rose');
+    } else if (phase === 'rose') {
+      if (!messageShown && pt > 2.2) {
+        messageShown = true;
+        messageEl.hidden = false;
+      }
+    } else {
+      flap = 0;
+    }
+    pt = now - phaseStart;
+    const vt = now - vortexStart;
+
+    rot += ((reduceMotion ? 0.0015 : 0.0058) + rotV) * dt;
+    rotV *= Math.pow(0.93, dt);
+    petalsOn += ((phase === 'rose' ? 1 : 0) - petalsOn) * Math.min(1, 0.02 * dt);
+
+    const cw = Math.cos(rot), sw = Math.sin(rot);
+    const tilt = 0.42, ca = Math.cos(tilt), sa = Math.sin(tilt);
+    const rcx = geo.rcx + Math.sin(now * 0.5) * 3, rby = geo.rby, S = geo.S;
+    const vcx = W / 2, vcy = geo.bcy, Rv = Math.min(W, H) * 0.36;
+    const bob = reduceMotion ? 0 : Math.sin(now * 1.3) * 5;
+    namePulse = reduceMotion ? 1 : 1 + 0.02 * Math.sin(pt * 2.4);
+    // crisp lettering fades in once the particles have written the name, and out as they leave
+    const bigTarget = phase === 'name' && pt > 1.9 ? 0.95 : 0;
+    bigA += (bigTarget - bigA) * Math.min(1, (bigTarget > bigA ? 0.05 : 0.15) * dt);
+    const smallTarget = phase === 'rose' && pt > 1.5 ? 1 : 0;
+    smallA += (smallTarget - smallA) * Math.min(1, (smallTarget > smallA ? 0.04 : 0.15) * dt);
+    const hinge = -geo.eh / 2;
+    const cf = Math.cos(flap), flapStretch = 1 + 0.06 * Math.sin(flap);
+    const repel = !reduceMotion && !dragging && now - pointer.seen < 2.5;
+    const onEnvelope = phase === 'intro' || phase === 'opening';
+
+    for (const p of particles) {
+      let tx, ty, k = 0.02 + p.kv * 0.025, damp = 0.86;
+      p.da = 1;
+      p.sz = 1;
+      if (onEnvelope && p.e) {
+        let ex = p.e.x, ey = p.e.y;
+        if (p.e.flap && flap > 0) {
+          ey = hinge + (ey - hinge) * cf;
+          ex *= flapStretch;
+          p.c = cf < 0 && p.e.c !== HEART ? AMBER_DIM : p.e.c;
+        }
+        tx = geo.ecx + ex;
+        ty = geo.ecy + ey + bob;
+      } else if ((phase === 'vortex' && (p.n || p.r)) || (phase === 'name' && p.n && pt < p.delay)) {
+        // galaxy swirl; during the name phase particles stay here until the pen reaches them
+        const rad = Rv * (0.1 + 0.9 * Math.sqrt(p.q));
+        const ang = p.ph + vt * (2.6 - 1.5 * p.q) + rad * 0.011;
+        tx = vcx + Math.cos(ang) * rad;
+        ty = vcy + Math.sin(ang) * rad * 0.38 + Math.sin(vt * 2 + p.ph) * 6;
+        k = 0.028 + p.kv * 0.02;
+        damp = 0.9;
+      } else if (phase === 'name' && p.n) {
+        tx = W / 2 + p.n.u * geo.bw * namePulse;
+        ty = geo.bcy + p.n.v * geo.bw * namePulse;
+        const wave = Math.pow(Math.max(0, Math.cos(p.n.u * 7 - now * 2.2)), 12); // light sweeping along the letters
+        p.c = p.n.c;
+        p.da = (0.7 + 0.5 * wave) * (1 - 0.45 * bigA); // once the crisp name shows, the particles become its halo
+        p.sz = 0.85 + 0.45 * wave;
+        k = 0.026 + p.kv * 0.02;
+        damp = 0.86;
+      } else if (phase === 'rose' && p.small && p.n) {
+        tx = W / 2 + p.n.u * geo.nw;
+        ty = geo.ncy + p.n.v * geo.nw;
+        const wave = Math.pow(Math.max(0, Math.cos(p.n.u * 7 - now * 1.6)), 12);
+        p.c = p.n.c;
+        p.da = (0.65 + 0.45 * wave) * (1 - 0.4 * smallA);
+        p.sz = 0.45 + 0.3 * wave; // smaller sprites keep the small script legible
+        k = 0.022 + p.kv * 0.018;
+        damp = 0.86;
+      } else if (phase === 'rose' && p.r) {
+        const P = p.r;
+        const x1 = P.X * cw - P.Y * sw, y1 = P.X * sw + P.Y * cw;
+        const d = y1 * ca - P.Z * sa, up = y1 * sa + P.Z * ca;
+        const f = 5 / (5 + d);
+        tx = rcx + x1 * S * f;
+        ty = rby - up * S * f;
+        const front = Math.min(1, Math.max(0, 0.55 - d * 0.5));
+        if (P.kind === 0) p.c = ROSE + Math.min(4, Math.max(0, Math.floor((0.15 + 0.55 * P.s + 0.4 * front) * 4.2)));
+        else if (P.kind === 3) p.c = P.s < 0.22 ? LEAF : LEAF_DARK;
+        else p.c = P.kind === 1 ? LEAF_DARK : LEAF;
+        p.da = 0.35 + 0.65 * front;
+        p.sz = 0.7 + 0.55 * front;
+        k = 0.016 + p.kv * 0.022;
+        damp = 0.87;
+      } else {
+        tx = p.fx * W + Math.sin(now * 0.21 + p.ph) * 24;
+        ty = p.fy * H + Math.cos(now * 0.17 + p.ph * 1.3) * 18;
+        k = 0.004;
+        damp = 0.95;
+        p.sz = 0.65;
+      }
+      if (pt < p.delay && phase !== 'name') k *= 0.12;
+      p.vx += (tx - p.x) * k * dt;
+      p.vy += (ty - p.y) * k * dt;
+      if (repel) {
+        const dx = p.x - pointer.x, dy = p.y - pointer.y, d2 = dx * dx + dy * dy;
+        if (d2 < 6400 && d2 > 0.01) {
+          const dd = Math.sqrt(d2), force = (1 - dd / 80) * 1.4 * dt;
+          p.vx += (dx / dd) * force;
+          p.vy += (dy / dd) * force;
+        }
+      }
+      const dm = Math.pow(damp, dt);
+      p.vx *= dm;
+      p.vy *= dm;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+
+    for (const pe of petals) {
+      pe.y += pe.vy * dt;
+      pe.x += Math.sin(now * 0.8 + pe.ph) * 0.35 * dt;
+      pe.rot += pe.vr * dt;
+      if (pe.y > H + 24) Object.assign(pe, makePetal(false));
+      if (pe.x < -24) pe.x = W + 20;
+      else if (pe.x > W + 24) pe.x = -20;
+    }
+  }
+
+  function drawGlow() {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of particles) {
+      const s = p.size * p.sz;
+      ctx.globalAlpha = p.a * p.da * 0.6;
+      ctx.drawImage(sprites[p.c], p.x - s / 2, p.y - s / 2, s, s);
+    }
+  }
+
+  // Terminal look: snap particles to a character grid, one glyph per cell
+  function drawGlyphs() {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = `600 ${geo.fs}px ${MONO}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    stamp += 1;
+    for (const p of particles) {
+      const col = Math.round(p.x / geo.cellW), row = Math.round(p.y / geo.cellH);
+      if (col < 0 || row < 0 || col >= gridCols || row >= gridRows) continue;
+      const key = row * gridCols + col;
+      if (grid[key] === stamp) continue;
+      grid[key] = stamp;
+      ctx.globalAlpha = Math.min(1, p.a * p.da);
+      ctx.fillStyle = PALETTE[p.c];
+      ctx.fillText(p.g, col * geo.cellW, row * geo.cellH);
+    }
+  }
+
+  function drawSky() {
+    sctx.clearRect(0, 0, W, H);
+    sctx.fillStyle = STAR_COLOR;
+    for (const s of stars) {
+      sctx.globalAlpha = s.a * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(now * s.sp + s.ph)));
+      sctx.fillRect(s.x * W, s.y * H, s.r, s.r);
+    }
+    if (petalsOn > 0.01) {
+      sctx.fillStyle = PETAL_COLOR;
+      for (const pe of petals) {
+        sctx.save();
+        sctx.translate(pe.x, pe.y);
+        sctx.rotate(pe.rot);
+        sctx.scale(1, 0.45 + 0.55 * Math.abs(Math.sin(now * 1.6 + pe.ph)));
+        sctx.globalAlpha = 0.55 * petalsOn;
+        sctx.beginPath();
+        sctx.moveTo(0, -pe.s);
+        sctx.quadraticCurveTo(pe.s, -pe.s * 0.2, 0, pe.s);
+        sctx.quadraticCurveTo(-pe.s, -pe.s * 0.2, 0, -pe.s);
+        sctx.fill();
+        sctx.restore();
+      }
+    }
+    sctx.globalAlpha = 1;
+  }
+
+  function makeSparkle() {
+    return {
+      i: (Math.random() * Math.max(1, namePts.length)) | 0,
+      t0: now + Math.random() * 1.4,
+      life: 0.7 + Math.random() * 0.8,
+      r: 0.5 + Math.random() * 0.8,
+    };
+  }
+
+  // The name in crisp script, placed exactly where its particles sit: rose-gold fill, glow and a light sweep
+  function drawNameText(cx, cy, width, alpha) {
+    const m = nameMetrics, scale = width / m.tw, size = m.fontPx * scale;
+    const ox = cx - ((m.right - m.left) / 2) * scale;
+    const oy = cy - ((m.desc - m.asc) / 2) * scale;
+    const x0 = cx - width / 2, x1 = cx + width / 2;
+    fctx.font = `${size}px ${SCRIPT}`;
+    fctx.textAlign = 'left';
+    fctx.textBaseline = 'alphabetic';
+
+    const base = fctx.createLinearGradient(x0, 0, x1, 0);
+    base.addColorStop(0, '#ffd9a0');
+    base.addColorStop(0.5, '#ff9fb6');
+    base.addColorStop(1, '#ffd9a0');
+    fctx.fillStyle = base;
+    fctx.shadowColor = 'rgba(255, 64, 108, 0.9)';
+    fctx.globalAlpha = alpha * 0.55;
+    fctx.shadowBlur = size * 0.5 * dpr;
+    fctx.fillText(currentName, ox, oy);
+    fctx.globalAlpha = alpha;
+    fctx.shadowBlur = size * 0.14 * dpr;
+    fctx.fillText(currentName, ox, oy);
+    fctx.shadowBlur = 0;
+
+    const s = ((now * 0.32) % 1.5) - 0.25; // the sweep crosses the name, then rests off the edge
+    if (!reduceMotion && s >= 0 && s <= 1) {
+      const band = 0.08, clamp = (v) => Math.min(1, Math.max(0, v));
+      const sweep = fctx.createLinearGradient(x0, 0, x1, 0);
+      sweep.addColorStop(0, 'rgba(255,255,255,0)');
+      sweep.addColorStop(clamp(s - band), 'rgba(255,255,255,0)');
+      sweep.addColorStop(s, 'rgba(255,255,255,0.95)');
+      sweep.addColorStop(clamp(s + band), 'rgba(255,255,255,0)');
+      sweep.addColorStop(1, 'rgba(255,255,255,0)');
+      fctx.fillStyle = sweep;
+      fctx.fillText(currentName, ox, oy);
+    }
+    fctx.globalAlpha = 1;
+  }
+
+  // Four-point twinkles that pop on random spots of the letters
+  function drawSparkles(cx, cy, width, alpha) {
+    fctx.globalCompositeOperation = 'lighter';
+    fctx.fillStyle = '#ffffff';
+    const unit = Math.max(4, width / 60);
+    for (const sp of sparkles) {
+      const t = (now - sp.t0) / sp.life;
+      if (t < 0) continue;
+      if (t > 1) {
+        Object.assign(sp, makeSparkle());
+        continue;
+      }
+      const pt = namePts[sp.i];
+      if (!pt) continue;
+      const x = cx + pt.u * width, y = cy + pt.v * width;
+      const life = Math.sin(Math.PI * t), r = unit * sp.r * life;
+      fctx.globalAlpha = alpha * life;
+      fctx.drawImage(sprites[GOLD], x - r * 1.6, y - r * 1.6, r * 3.2, r * 3.2);
+      fctx.beginPath();
+      fctx.moveTo(x, y - r * 1.4);
+      fctx.quadraticCurveTo(x, y, x + r, y);
+      fctx.quadraticCurveTo(x, y, x, y + r * 1.4);
+      fctx.quadraticCurveTo(x, y, x - r, y);
+      fctx.quadraticCurveTo(x, y, x, y - r * 1.4);
+      fctx.fill();
+    }
+    fctx.globalCompositeOperation = 'source-over';
+    fctx.globalAlpha = 1;
+  }
+
+  function drawFx() {
+    fctx.clearRect(0, 0, W, H);
+    if (!nameMetrics) return;
+    const layers = [[geo.bcy, geo.bw * namePulse, bigA], [geo.ncy, geo.nw, smallA]];
+    for (const [cy, width, alpha] of layers) {
+      if (alpha < 0.01) continue;
+      drawNameText(W / 2, cy, width, alpha);
+      if (!reduceMotion) drawSparkles(W / 2, cy, width, alpha);
+    }
+  }
+
+  function draw() {
+    // Fade the previous frame instead of clearing it, which leaves short light trails
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = reduceMotion ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0.32)';
+    ctx.fillRect(0, 0, W, H);
+    if (asciiMode) drawGlyphs();
+    else drawGlow();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    drawSky();
+    drawFx();
+  }
+
+  function ensureAudio() {
+    if (!soundOn) return null;
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume().catch(() => {});
+      return audio;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function bell(ac, out, freq, at, len, gain) {
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), g2 = ac.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    o2.type = 'sine';
+    o2.frequency.value = freq * 2.01;
+    g2.gain.value = 0.18;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    o.connect(g);
+    o2.connect(g2);
+    g2.connect(g);
+    g.connect(out);
+    o.start(at);
+    o2.start(at);
+    o.stop(at + len + 0.05);
+    o2.stop(at + len + 0.05);
+  }
+
+  function chime() {
+    const ac = ensureAudio();
+    if (!ac) return;
+    const out = ac.createGain();
+    out.gain.value = 0.16;
+    out.connect(ac.destination);
+    const t0 = ac.currentTime + 0.02;
+    [659.25, 830.61, 987.77, 1318.51, 1244.51, 987.77, 1108.73, 1661.22].forEach((f, i) => bell(ac, out, f, t0 + i * 0.13, 1.8, 0.8));
+  }
+
+  // Rising bells timed to the name being written
+  function nameSound() {
+    if (!audio || !soundOn) return;
+    const ac = ensureAudio();
+    if (!ac) return;
+    const out = ac.createGain();
+    out.gain.value = 0.12;
+    out.connect(ac.destination);
+    const t0 = ac.currentTime + 0.05;
+    [783.99, 987.77, 1174.66, 1318.51, 1567.98, 1975.53].forEach((f, i) => bell(ac, out, f, t0 + i * 0.26, 2.2, 0.6));
+  }
+
+  function bloomSound() {
+    if (!audio || !soundOn) return;
+    const ac = ensureAudio();
+    if (!ac) return;
+    const out = ac.createGain();
+    out.gain.value = 0.1;
+    out.connect(ac.destination);
+    const t0 = ac.currentTime + 0.05;
+    [329.63, 415.3, 493.88, 622.25, 739.99].forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.8 + i * 0.12);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 4.5);
+      o.connect(g);
+      g.connect(out);
+      o.start(t0);
+      o.stop(t0 + 4.6);
+    });
+    [1318.51, 1661.22, 1975.53].forEach((f, i) => bell(ac, out, f, t0 + 0.3 + i * 0.22, 2.4, 0.5));
+  }
+
+  function openEnvelope() {
+    if (phase !== 'intro') return;
+    introEl.hidden = true;
+    setPhase('opening');
+    chime();
+  }
+
+  function replay() {
+    messageEl.hidden = true;
+    introEl.hidden = false;
+    setPhase('intro');
+    openBtn.focus({ preventScroll: true });
+  }
+
+  function syncToggles() {
+    asciiBtn.setAttribute('aria-pressed', String(asciiMode));
+    soundBtn.setAttribute('aria-pressed', String(soundOn));
+  }
+
+  openBtn.addEventListener('click', openEnvelope);
+  replayBtn.addEventListener('click', replay);
+  asciiBtn.addEventListener('click', () => {
+    asciiMode = !asciiMode;
+    prefs.write('foryou-ascii', asciiMode);
+    syncToggles();
+    ctx.clearRect(0, 0, W, H);
+  });
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    prefs.write('foryou-sound', soundOn);
+    syncToggles();
+    if (soundOn) ensureAudio();
+    else if (audio) audio.suspend().catch(() => {});
+  });
+
+  stage.addEventListener('pointerdown', (e) => {
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+    pointer.seen = now;
+    if (phase === 'intro') {
+      if (Math.abs(e.clientX - geo.ecx) < geo.ew / 2 + 20 && Math.abs(e.clientY - geo.ecy) < geo.eh / 2 + 20) openEnvelope();
+    } else if (phase === 'rose') {
+      dragging = true;
+      lastPX = e.clientX;
+      stage.setPointerCapture(e.pointerId);
+    }
+  });
+  stage.addEventListener('pointermove', (e) => {
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+    pointer.seen = now;
+    if (dragging) {
+      const dx = e.clientX - lastPX;
+      rot += dx * 0.008;
+      rotV = dx * 0.004;
+      lastPX = e.clientX;
+    }
+  });
+  const endDrag = () => { dragging = false; };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+  stage.addEventListener('pointerleave', () => {
+    endDrag();
+    pointer.seen = -1e9;
+  });
+
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 120);
+  });
+  window.addEventListener('hashchange', applyName);
+
+  // Particle roles: the first nSmall also write the small name under the rose, the next nRose build the rose,
+  // the first nBig write the big name; whoever is left over drifts as dust.
+  measure();
+  const count = Math.round(Math.min(4200, Math.max(1800, (W * H) / 340)));
+  const nSmall = Math.round(count * 0.2), nRose = Math.round(count * 0.62);
+  nBig = Math.round(count * 0.78);
+  particles = Array.from({ length: count }, makeParticle);
+  const rosePts = shuffle(buildRose(nRose));
+  particles.forEach((p, i) => {
+    p.small = i < nSmall;
+    p.r = i >= nSmall ? rosePts[i - nSmall] || null : null;
+  });
+  stars = Array.from({ length: 190 }, () => ({
+    x: Math.random(), y: Math.random(),
+    r: Math.random() < 0.1 ? 2 : 1 + Math.random() * 0.4,
+    a: 0.25 + Math.random() * 0.55, sp: 0.5 + Math.random() * 1.8, ph: Math.random() * TAU,
+  }));
+  petals = Array.from({ length: 16 }, () => makePetal(true));
+  applyName();
+  syncToggles();
+  body.dataset.phase = phase;
+  openBtn.disabled = true;
+  resize();
+
+  // Both lettering faces are sampled into points, so wait for them (briefly) before building the shapes
+  const fontLoads = document.fonts && document.fonts.load
+    ? Promise.all([document.fonts.load(`800 40px "JetBrains Mono"`), document.fonts.load(`80px "Pinyon Script"`)])
+    : Promise.resolve();
+  Promise.race([fontLoads, new Promise((resolve) => setTimeout(resolve, 2500))]).catch(() => {}).then(() => {
+    fontReady = true;
+    buildNameTargets();
+    buildEnvelopeTargets();
+    setPhase('intro');
+    openBtn.disabled = false;
+  });
+
+  let last = performance.now();
+  function frame(t) {
+    const dt = Math.min(Math.max((t - last) / 16.667, 0), 3);
+    last = t;
+    now = t / 1000;
+    step(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
